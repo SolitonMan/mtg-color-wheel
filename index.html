@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MTG Color Wheel — Guilds, Shards & Wedges</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #ffffff;
+    --bg2:       #f5f4f0;
+    --bg3:       #eceae4;
+    --text:      #1a1a18;
+    --text2:     #5a5a55;
+    --text3:     #8a8a84;
+    --border:    rgba(0,0,0,0.10);
+    --border2:   rgba(0,0,0,0.18);
+    --radius:    8px;
+    --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:      #1c1c1a;
+      --bg2:     #252523;
+      --bg3:     #2e2e2b;
+      --text:    #e8e6de;
+      --text2:   #a0a099;
+      --text3:   #686865;
+      --border:  rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.15);
+    }
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  header p {
+    font-size: 0.85rem;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 780px;
+  }
+
+  #tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .tab-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    font-family: var(--font);
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text2);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .tab-btn:hover { background: var(--bg2); color: var(--text); }
+  .tab-btn.active {
+    background: var(--bg2);
+    color: var(--text);
+    border-color: var(--border2);
+    font-weight: 500;
+  }
+
+  #main-area {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  #wheel-wrap {
+    flex: 0 0 auto;
+    width: 340px;
+  }
+
+  #side-legend {
+    flex: 1 1 auto;
+    min-width: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding-top: 6px;
+  }
+
+  .leg-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    padding: 8px 10px 3px;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    border-radius: var(--radius);
+    border: 0.5px solid transparent;
+    cursor: pointer;
+    transition: background .12s, border-color .12s;
+    font-size: 13px;
+    color: var(--text2);
+  }
+  .leg-item:hover, .leg-item.lit {
+    background: var(--bg2);
+    border-color: var(--border);
+    color: var(--text);
+  }
+  .leg-swatch {
+    width: 11px;
+    height: 11px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .leg-colors {
+    font-size: 10.5px;
+    color: var(--text3);
+    margin-left: auto;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+
+  #detail-panel {
+    margin-top: 14px;
+    padding: 11px 15px;
+    background: var(--bg2);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    font-size: 13px;
+    min-height: 48px;
+    color: var(--text2);
+    line-height: 1.55;
+  }
+  #detail-panel strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    font-size: 11px;
+    color: var(--text3);
+    text-align: center;
+  }
+  footer a { color: var(--text3); text-decoration: underline; }
+
+  @media (max-width: 580px) {
+    #main-area { flex-direction: column; }
+    #wheel-wrap { width: 100%; }
+    #side-legend { flex-direction: row; flex-wrap: wrap; padding-top: 0; }
+    .leg-section-title { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MTG Color Wheel</h1>
+  <p>Guilds, Shards &amp; Wedges — hover the legend to highlight each grouping</p>
+</header>
+
+<div id="app">
+  <div id="tabs">
+    <button class="tab-btn active" onclick="setMode('none')">Colors only</button>
+    <button class="tab-btn" onclick="setMode('guilds')">2-color guilds</button>
+    <button class="tab-btn" onclick="setMode('shards')">3-color shards</button>
+    <button class="tab-btn" onclick="setMode('wedges')">3-color wedges</button>
+    <button class="tab-btn" onclick="setMode('all3')">All 3-color</button>
+  </div>
+
+  <div id="main-area">
+    <div id="wheel-wrap">
+      <svg id="wheel" width="100%" viewBox="0 0 340 340" role="img">
+        <title>MTG Color Wheel</title>
+        <desc>A pentagram showing the five Magic: The Gathering colors with interactive group overlays.</desc>
+        <g id="group-layer"></g>
+        <g id="highlight-layer"></g>
+        <g id="guild-label-layer"></g>
+        <g id="penta-lines" stroke="rgba(128,128,128,0.25)" stroke-width="0.8" fill="none"></g>
+        <g id="nodes"></g>
+      </svg>
+    </div>
+    <div id="side-legend"></div>
+  </div>
+
+  <div id="detail-panel">Hover a name in the legend, or click a color node for details.</div>
+</div>
+
+<footer>
+  Magic: The Gathering color groupings reference &nbsp;·&nbsp;
+  Guilds from <a href="https://mtg.fandom.com/wiki/Ravnican_guild" target="_blank">Ravnica</a> &nbsp;·&nbsp;
+  Shards from <a href="https://mtg.fandom.com/wiki/Shard" target="_blank">Alara</a> &nbsp;·&nbsp;
+  Wedges from <a href="https://mtg.fandom.com/wiki/Wedge" target="_blank">Tarkir</a>
+</footer>
+
+<script>
+const CX = 170, CY = 168, R = 128;
+
+const COLORS = [
+  { id:'W', name:'White', angle:-90,  hex:'#F5F0D8', border:'#C8B860', text:'#5A4A00' },
+  { id:'U', name:'Blue',  angle:-18,  hex:'#A8CCE8', border:'#1A5090', text:'#0A2E55' },
+  { id:'B', name:'Black', angle:54,   hex:'#3A3A3A', border:'#888888', text:'#E0E0E0' },
+  { id:'R', name:'Red',   angle:126,  hex:'#E87858', border:'#B02808', text:'#5A1000' },
+  { id:'G', name:'Green', angle:198,  hex:'#60BC60', border:'#186018', text:'#083A08' },
+];
+
+const COLOR_DESC = {
+  W: 'Order, law, unity. Seeks peace through structure and community. Home of soldiers, clerics, and angels.',
+  U: 'Knowledge, intellect, perfection. Seeks omniscience through careful study. Home of wizards, sphinxes, and merfolk.',
+  B: 'Power, selfishness, ambition. Seeks omnipotence by any means necessary. Home of zombies, demons, and vampires.',
+  R: 'Freedom, chaos, impulse. Seeks liberation through action and emotion. Home of goblins, dragons, and warriors.',
+  G: 'Nature, growth, instinct. Seeks perfection through natural order. Home of elves, beasts, and druids.',
+};
+
+function pos(angle, r) {
+  r = r === undefined ? R : r;
+  const rad = angle * Math.PI / 180;
+  return { x: CX + r * Math.cos(rad), y: CY + r * Math.sin(rad) };
+}
+const colorMap = {};
+COLORS.forEach(function(c) { colorMap[c.id] = c; });
+function colorPos(id) { return pos(colorMap[id].angle); }
+
+const ALLIED_COLORS = ['#5568CC','#7755CC','#CC5578','#CC8855','#66BB66'];
+const ENEMY_COLORS  = ['#CC6655','#4490BB','#77AA55','#BBA050','#50A888'];
+
+const GUILDS = [
+  { name:'Azorius',  colors:['W','U'], allied:true,  desc:'White + Blue senate. Law, bureaucracy, and counterspell control.' },
+  { name:'Dimir',    colors:['U','B'], allied:true,  desc:'Blue + Black spies. Secrets, mill, manipulation, and stealth.' },
+  { name:'Rakdos',   colors:['B','R'], allied:true,  desc:'Black + Red cult. Chaos, sacrifice, hedonism, and destruction.' },
+  { name:'Gruul',    colors:['R','G'], allied:true,  desc:'Red + Green clans. Savage nature, ferocity, and primal aggression.' },
+  { name:'Selesnya', colors:['G','W'], allied:true,  desc:'Green + White conclave. Community, token armies, and unity.' },
+  { name:'Orzhov',   colors:['W','B'], allied:false, desc:'White + Black syndicate. Wealth, life drain, and oppression.' },
+  { name:'Izzet',    colors:['U','R'], allied:false, desc:'Blue + Red league. Mad science, instants, and explosive innovation.' },
+  { name:'Golgari',  colors:['B','G'], allied:false, desc:'Black + Green swarm. Life and death cycles, graveyard recursion.' },
+  { name:'Boros',    colors:['R','W'], allied:false, desc:'Red + White legion. Justice, valor, and aggressive military tactics.' },
+  { name:'Simic',    colors:['G','U'], allied:false, desc:'Green + Blue combine. Evolution, adaptation, and biomutation.' },
+];
+
+const SHARD_COLORS = ['#7055A8','#3080C4','#C44848','#CC7020','#409840'];
+const WEDGE_COLORS = ['#7A9A38','#4870C0','#C05878','#C03828','#288858'];
+
+const SHARDS = [
+  { name:'Bant',   colors:['G','W','U'], desc:'Green + White + Blue. Honor, knightly order, and the Exalted mechanic. From Alara.' },
+  { name:'Esper',  colors:['U','W','B'], desc:'Blue + White + Black. Artifact mastery, sphinx intellect, and control magic. From Alara.' },
+  { name:'Grixis', colors:['U','B','R'], desc:'Blue + Black + Red. Undead hordes, demonic manipulation, and chaotic destruction. From Alara.' },
+  { name:'Jund',   colors:['B','R','G'], desc:'Black + Red + Green. Dragon lords, savage sacrifice, and resource destruction. From Alara.' },
+  { name:'Naya',   colors:['R','G','W'], desc:'Red + Green + White. Massive creatures, paradise jungles, and raw overwhelming power. From Alara.' },
+];
+
+const WEDGES = [
+  { name:'Abzan',  colors:['W','B','G'], desc:'White + Black + Green. Endurance, outlast, life gain, and ancestral resilience. Tarkir clan.' },
+  { name:'Jeskai', colors:['U','R','W'], desc:'Blue + Red + White. Cunning, prowess, and mastery of instants and sorceries. Tarkir clan.' },
+  { name:'Sultai', colors:['B','G','U'], desc:'Black + Green + Blue. Delve, graveyard recursion, and ruthless cruel ambition. Tarkir clan.' },
+  { name:'Mardu',  colors:['R','W','B'], desc:'Red + White + Black. Raid, lightning-fast warrior hordes, and overwhelming speed. Tarkir clan.' },
+  { name:'Temur',  colors:['G','U','R'], desc:'Green + Blue + Red. Ferocious, massive spells, shamanic wild magic. Tarkir clan.' },
+];
+
+let currentMode = 'none';
+
+const svg = document.getElementById('wheel');
+const groupLayer = document.getElementById('group-layer');
+const highlightLayer = document.getElementById('highlight-layer');
+const guildLabelLayer = document.getElementById('guild-label-layer');
+const pentaLines = document.getElementById('penta-lines');
+const nodesG = document.getElementById('nodes');
+const detail = document.getElementById('detail-panel');
+const sideDiv = document.getElementById('side-legend');
+
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs) {
+  const e = document.createElementNS(NS, tag);
+  Object.keys(attrs).forEach(function(k) { e.setAttribute(k, attrs[k]); });
+  return e;
+}
+
+function buildPentagram() {
+  for (var i = 0; i < 5; i++) {
+    var a = COLORS[i], b = COLORS[(i+2)%5];
+    var pa = pos(a.angle), pb = pos(b.angle);
+    pentaLines.appendChild(el('line',{x1:pa.x,y1:pa.y,x2:pb.x,y2:pb.y}));
+  }
+  for (var i = 0; i < 5; i++) {
+    var a = COLORS[i], b = COLORS[(i+1)%5];
+    var pa = pos(a.angle), pb = pos(b.angle);
+    pentaLines.appendChild(el('line',{x1:pa.x,y1:pa.y,x2:pb.x,y2:pb.y}));
+  }
+}
+
+function buildNodes() {
+  COLORS.forEach(function(c) {
+    var p = pos(c.angle);
+    var g = document.createElementNS(NS, 'g');
+    g.style.cursor = 'pointer';
+    g.addEventListener('click', function() {
+      detail.innerHTML = '<strong>' + c.name + ' (' + c.id + ')</strong> — ' + COLOR_DESC[c.id];
+    });
+    var circle = el('circle',{cx:p.x,cy:p.y,r:'22',fill:c.hex,stroke:c.border,'stroke-width':'2'});
+    var lbl = el('text',{x:p.x,y:p.y,'text-anchor':'middle','dominant-baseline':'central','font-size':'13','font-weight':'600',fill:c.text,'font-family':'inherit'});
+    lbl.textContent = c.id;
+    var np = pos(c.angle, R+40);
+    var nlbl = el('text',{x:np.x,y:np.y,'text-anchor':'middle','dominant-baseline':'central','font-size':'11',fill:'var(--text2, #5a5a55)','font-family':'inherit'});
+    nlbl.textContent = c.name;
+    g.appendChild(circle); g.appendChild(lbl);
+    nodesG.appendChild(g); nodesG.appendChild(nlbl);
+  });
+}
+
+function makePolygon(colorIds, fillColor, fillOpacity, strokeOpacity, strokeWidth) {
+  var pts = colorIds.map(function(id){ var p = colorPos(id); return p.x+','+p.y; }).join(' ');
+  return el('polygon',{
+    points: pts,
+    fill: fillColor,
+    'fill-opacity': fillOpacity || 0.13,
+    stroke: fillColor,
+    'stroke-opacity': strokeOpacity || 0.25,
+    'stroke-width': strokeWidth || 5,
+    'stroke-linejoin': 'round'
+  });
+}
+
+function makeEdge(colorIds, strokeColor, opacity, width) {
+  var a = colorPos(colorIds[0]), b = colorPos(colorIds[1]);
+  return el('line',{
+    x1:a.x, y1:a.y, x2:b.x, y2:b.y,
+    stroke: strokeColor,
+    'stroke-width': width || 4.5,
+    'stroke-linecap': 'round',
+    opacity: opacity || 0.35
+  });
+}
+
+function highlightItem(item, color, type, legEl) {
+  highlightLayer.innerHTML = '';
+  document.querySelectorAll('.leg-item').forEach(function(e){ e.classList.remove('lit'); });
+  if (legEl) legEl.classList.add('lit');
+  if (type === 'guild') {
+    var e = makeEdge(item.colors, color, 0.9, 7);
+    highlightLayer.appendChild(e);
+  } else {
+    var e = makePolygon(item.colors, color, 0.36, 0.7, 6);
+    highlightLayer.appendChild(e);
+  }
+  var typeLabel = type === 'guild'
+    ? 'Guild (Ravnica) — ' + (item.allied ? 'Allied' : 'Enemy') + ' pair'
+    : type === 'shard' ? 'Shard (Alara) — allied trio'
+    : 'Wedge (Tarkir) — enemy trio';
+  detail.innerHTML = '<strong>' + item.name + '</strong> [' + typeLabel + ': ' + item.colors.join('+') + '] — ' + item.desc;
+}
+
+function clearHighlight() {
+  highlightLayer.innerHTML = '';
+  document.querySelectorAll('.leg-item').forEach(function(e){ e.classList.remove('lit'); });
+  detail.innerHTML = 'Hover a name in the legend, or click a color node for details.';
+}
+
+function buildSideLegend(mode) {
+  sideDiv.innerHTML = '';
+  if (mode === 'none') return;
+
+  function makeSection(title, items, palette, type) {
+    if (title) {
+      var h = document.createElement('div');
+      h.className = 'leg-section-title';
+      h.textContent = title;
+      sideDiv.appendChild(h);
+    }
+    items.forEach(function(item, i) {
+      var color = palette[i % palette.length];
+      var row = document.createElement('div');
+      row.className = 'leg-item';
+
+      var swatch = document.createElement('div');
+      swatch.className = 'leg-swatch';
+      swatch.style.background = color;
+
+      var nameSpan = document.createElement('span');
+      nameSpan.textContent = item.name;
+
+      var colSpan = document.createElement('span');
+      colSpan.className = 'leg-colors';
+      colSpan.textContent = item.colors.join('');
+
+      row.appendChild(swatch);
+      row.appendChild(nameSpan);
+      row.appendChild(colSpan);
+
+      row.addEventListener('mouseenter', function() { highlightItem(item, color, type, row); });
+      row.addEventListener('mouseleave', clearHighlight);
+      row.addEventListener('click', function() { highlightItem(item, color, type, row); });
+
+      sideDiv.appendChild(row);
+    });
+  }
+
+  if (mode === 'guilds') {
+    makeSection('Allied pairs', GUILDS.slice(0,5), ALLIED_COLORS, 'guild');
+    makeSection('Enemy pairs', GUILDS.slice(5), ENEMY_COLORS, 'guild');
+  } else if (mode === 'shards') {
+    makeSection('Shards of Alara', SHARDS, SHARD_COLORS, 'shard');
+  } else if (mode === 'wedges') {
+    makeSection('Khans of Tarkir', WEDGES, WEDGE_COLORS, 'wedge');
+  } else if (mode === 'all3') {
+    makeSection('Shards of Alara', SHARDS, SHARD_COLORS, 'shard');
+    makeSection('Khans of Tarkir', WEDGES, WEDGE_COLORS, 'wedge');
+  }
+}
+
+function drawBaseGroups(mode) {
+  groupLayer.innerHTML = '';
+  guildLabelLayer.innerHTML = '';
+  if (mode === 'guilds') {
+    GUILDS.slice(0,5).forEach(function(g, i) {
+      groupLayer.appendChild(makeEdge(g.colors, ALLIED_COLORS[i], 0.30, 4));
+    });
+    GUILDS.slice(5).forEach(function(g, i) {
+      groupLayer.appendChild(makeEdge(g.colors, ENEMY_COLORS[i], 0.30, 4));
+    });
+    GUILDS.forEach(function(g, i) {
+      var p1 = colorPos(g.colors[0]), p2 = colorPos(g.colors[1]);
+      var mx = (p1.x+p2.x)/2, my = (p1.y+p2.y)/2;
+      var dx = mx-CX, dy = my-CY;
+      var dist = Math.sqrt(dx*dx+dy*dy) || 1;
+      var lx = CX+(dx/dist)*(dist+24), ly = CY+(dy/dist)*(dist+24);
+      var t = el('text',{x:lx,y:ly,'text-anchor':'middle','dominant-baseline':'central','font-size':'9','font-family':'inherit',opacity:'0.65'});
+      t.setAttribute('fill', i < 5 ? ALLIED_COLORS[i] : ENEMY_COLORS[i-5]);
+      t.textContent = g.name;
+      guildLabelLayer.appendChild(t);
+    });
+  } else if (mode === 'shards' || mode === 'wedges' || mode === 'all3') {
+    function drawSet(items, palette) {
+      items.forEach(function(item, i) {
+        var color = palette[i];
+        groupLayer.appendChild(makePolygon(item.colors, color, 0.11, 0.22, 5));
+        var cx = item.colors.reduce(function(s,id){ return s+colorPos(id).x; },0)/3;
+        var cy = item.colors.reduce(function(s,id){ return s+colorPos(id).y; },0)/3;
+        var dx = cx-CX, dy = cy-CY;
+        var dist = Math.sqrt(dx*dx+dy*dy)||1;
+        var lx = CX+(dx/dist)*(dist+10), ly = CY+(dy/dist)*(dist+10);
+        var t = el('text',{x:lx,y:ly,'text-anchor':'middle','dominant-baseline':'central','font-size':'8.5','font-weight':'500','font-family':'inherit',opacity:'0.75'});
+        t.setAttribute('fill', color);
+        t.textContent = item.name;
+        guildLabelLayer.appendChild(t);
+      });
+    }
+    if (mode === 'shards' || mode === 'all3') drawSet(SHARDS, SHARD_COLORS);
+    if (mode === 'wedges' || mode === 'all3') drawSet(WEDGES, WEDGE_COLORS);
+  }
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelector('.tab-btn[onclick="setMode(\''+mode+'\')"]').classList.add('active');
+  clearHighlight();
+  drawBaseGroups(mode);
+  buildSideLegend(mode);
+}
+
+buildPentagram();
+buildNodes();
+</script>
+</body>
+</html>
